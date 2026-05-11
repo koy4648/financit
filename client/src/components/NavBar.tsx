@@ -56,8 +56,8 @@ export default function NavBar() {
         <div className="flex items-center gap-2 shrink-0">
           <TrendingUp size={16} style={{ color: '#00d4ff' }} />
           <span className="font-bold text-sm tracking-wider" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-            <span style={{ color: '#00d4ff' }}>QUANT</span>
-            <span className="text-muted-foreground"> DASHBOARD</span>
+            <span style={{ color: '#00d4ff' }}>티끌모아</span>
+            <span className="text-muted-foreground"> 태산</span>
           </span>
         </div>
 

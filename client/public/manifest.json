@@ -1,6 +1,6 @@
 {
   "name": "티끌모아 태산",
-  "short_name": "티끌태산",
+  "short_name": "티끌모아 태산",
   "description": "개인 투자 포트폴리오 추적 · 국제 정세 분석 · 매도 전략",
   "start_url": "/",
   "display": "fullscreen",
@@ -35,7 +35,7 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "티끌모아 태산 투자 대시보드"
+     "name": "티끌모아 태산"
     }
   ]
 }
