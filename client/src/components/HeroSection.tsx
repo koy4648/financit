@@ -60,9 +60,9 @@ export default function HeroSection() {
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-3 leading-tight"
             style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-            글로벌 투자 전략
+            티끌모아
             <br />
-            <span style={{ color: '#00d4ff' }}>대시보드</span>
+            <span style={{ color: '#00d4ff' }}>태산</span>
           </h1>
           <p className="text-muted-foreground text-base mb-6 max-w-xl">
             최근 5년 한국·미국 시장 분석 · 국제 정세 리스크 점검 · 개인 포트폴리오 추적

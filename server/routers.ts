@@ -1,0 +1,232 @@
+import { COOKIE_NAME } from "@shared/const";
+import { getSessionCookieOptions } from "./_core/cookies";
+import { systemRouter } from "./_core/systemRouter";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import {
+  getPortfolioItems, createPortfolioItem, updatePortfolioItem, deletePortfolioItem,
+  getBuyRecords, createBuyRecords, deleteBuyRecord, getLastBuyRecordDate,
+  saveSnapshot, getSnapshots,
+} from "./db";
+import { invokeLLM } from "./_core/llm";
+import axios from "axios";
+
+const portfolioItemInput = z.object({
+  ticker: z.string().min(1).max(20),
+  name: z.string().min(1).max(100),
+  nameKr: z.string().max(100).optional(),
+  type: z.enum(["us-stock", "kr-stock", "etf", "commodity"]),
+  currency: z.enum(["KRW", "USD"]),
+  avgCost: z.number().min(0),
+  shares: z.number().min(0),
+  buyAmount: z.number().int().min(0),
+  buyFrequency: z.enum(["daily", "weekly", "monthly"]),
+  sector: z.string().max(100).optional(),
+  memo: z.string().optional(),
+});
+
+const buyRecordInput = z.object({
+  portfolioItemId: z.number().int(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  price: z.number(),
+  amount: z.number().int(),
+  shares: z.number(),
+  exchangeRate: z.number().optional(),
+  memo: z.string().max(200).optional(),
+});
+
+// 야후파이낸스 현재가 조회 (서버사이드 - CORS 없음)
+async function fetchCurrentPrice(ticker: string, currency: 'KRW' | 'USD'): Promise<{
+  price: number; change: number; changePercent: number; currency: string;
+} | null> {
+  try {
+    const yahooTicker = currency === 'KRW' ? `${ticker}.KS` : ticker;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooTicker}?interval=1d&range=2d`;
+    const res = await axios.get(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 8000,
+    });
+    const result = res.data?.chart?.result?.[0];
+    if (!result) return null;
+    const meta = result.meta;
+    const price = meta.regularMarketPrice ?? meta.previousClose ?? 0;
+    const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
+    const change = price - prevClose;
+    const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+    return { price, change, changePercent, currency: meta.currency || (currency === 'KRW' ? 'KRW' : 'USD') };
+  } catch {
+    return null;
+  }
+}
+
+// 환율 조회 (USD/KRW)
+async function fetchExchangeRate(): Promise<number> {
+  try {
+    const res = await axios.get(
+      'https://query1.finance.yahoo.com/v8/finance/chart/USDKRW=X?interval=1d&range=1d',
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 5000 }
+    );
+    const price = res.data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return price ?? 1380;
+  } catch {
+    return 1380;
+  }
+}
+
+export const appRouter = router({
+  system: systemRouter,
+  auth: router({
+    me: publicProcedure.query(opts => opts.ctx.user),
+    logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
+  }),
+
+  portfolio: router({
+    list: protectedProcedure.query(({ ctx }) =>
+      getPortfolioItems(ctx.user.id)
+    ),
+    create: protectedProcedure
+      .input(portfolioItemInput)
+      .mutation(async ({ ctx, input }) => {
+        const id = await createPortfolioItem({ ...input, userId: ctx.user.id });
+        return { id };
+      }),
+    update: protectedProcedure
+      .input(z.object({ id: z.number().int(), data: portfolioItemInput.partial() }))
+      .mutation(({ ctx, input }) =>
+        updatePortfolioItem(input.id, ctx.user.id, input.data)
+      ),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(({ ctx, input }) =>
+        deletePortfolioItem(input.id, ctx.user.id)
+      ),
+  }),
+
+  buyRecord: router({
+    list: protectedProcedure
+      .input(z.object({ portfolioItemId: z.number().int().optional() }))
+      .query(({ ctx, input }) =>
+        getBuyRecords(ctx.user.id, input.portfolioItemId)
+      ),
+    lastDate: protectedProcedure
+      .input(z.object({ portfolioItemId: z.number().int() }))
+      .query(({ ctx, input }) =>
+        getLastBuyRecordDate(ctx.user.id, input.portfolioItemId)
+      ),
+    createBatch: protectedProcedure
+      .input(z.array(buyRecordInput))
+      .mutation(async ({ ctx, input }) => {
+        const records = input.map(r => ({ ...r, userId: ctx.user.id }));
+        await createBuyRecords(records);
+        return { count: records.length };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(({ ctx, input }) =>
+        deleteBuyRecord(input.id, ctx.user.id)
+      ),
+  }),
+
+  // 실시간 시세 조회
+  market: router({
+    // 여러 종목 현재가 일괄 조회
+    prices: protectedProcedure
+      .input(z.array(z.object({
+        ticker: z.string(),
+        currency: z.enum(["KRW", "USD"]),
+      })))
+      .query(async ({ input }) => {
+        const results = await Promise.allSettled(
+          input.map(async ({ ticker, currency }) => ({
+            ticker,
+            data: await fetchCurrentPrice(ticker, currency),
+          }))
+        );
+        const priceMap: Record<string, { price: number; change: number; changePercent: number; currency: string } | null> = {};
+        results.forEach(r => {
+          if (r.status === 'fulfilled') priceMap[r.value.ticker] = r.value.data;
+        });
+        return priceMap;
+      }),
+
+    // USD/KRW 환율
+    exchangeRate: protectedProcedure.query(async () => {
+      const rate = await fetchExchangeRate();
+      return { rate };
+    }),
+  }),
+
+  // 포트폴리오 스냅샷 (자산 성장 기록)
+  snapshot: router({
+    save: protectedProcedure
+      .input(z.object({
+        totalKRW: z.number(),
+        totalInvestedKRW: z.number(),
+        items: z.array(z.object({
+          ticker: z.string(),
+          valueKRW: z.number(),
+          gainPercent: z.number(),
+        })),
+      }))
+      .mutation(({ ctx, input }) =>
+        saveSnapshot(ctx.user.id, input)
+      ),
+    list: protectedProcedure
+      .input(z.object({ days: z.number().int().min(7).max(365).default(90) }))
+      .query(({ ctx, input }) =>
+        getSnapshots(ctx.user.id, input.days)
+      ),
+  }),
+
+  // AI 포트폴리오 진단
+  ai: router({
+    diagnose: protectedProcedure
+      .input(z.object({
+        portfolio: z.array(z.object({
+          ticker: z.string(),
+          name: z.string(),
+          sector: z.string(),
+          currency: z.string(),
+          avgCost: z.number(),
+          shares: z.number(),
+          currentPrice: z.number().optional(),
+          gainPercent: z.number().optional(),
+          valueKRW: z.number().optional(),
+          weight: z.number().optional(),
+        })),
+        totalValueKRW: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const portfolioText = input.portfolio.map(p =>
+          `- ${p.ticker} (${p.name}): 섹터=${p.sector}, 평단가=${p.avgCost}${p.currency === 'USD' ? 'USD' : '원'}, 수량=${p.shares}, 현재수익률=${p.gainPercent?.toFixed(1) ?? 'N/A'}%, 비중=${p.weight?.toFixed(1) ?? 'N/A'}%`
+        ).join('\n');
+
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: 'system',
+              content: `당신은 한국의 전문 투자 어드바이저입니다. 사용자의 포트폴리오를 분석하고 구체적이고 실용적인 조언을 한국어로 제공합니다. 
+              분석 시 다음을 포함하세요:
+              1. 포트폴리오 강점 (2-3가지)
+              2. 리스크 요인 및 개선점 (2-3가지)
+              3. 섹터 집중도 분석
+              4. 구체적인 리밸런싱 제안
+              5. 국내주식 추가 투자 의견
+              응답은 마크다운 형식으로 작성하되, 간결하고 실용적으로 작성하세요 (500자 이내).`,
+            },
+            {
+              role: 'user',
+              content: `내 포트폴리오 현황 (총 평가금액: ${(input.totalValueKRW / 10000).toFixed(0)}만원):\n${portfolioText}\n\n이 포트폴리오를 분석하고 투자 조언을 해주세요.`,
+            },
+          ],
+        });
+        return { analysis: response.choices[0]?.message?.content ?? '분석 결과를 가져올 수 없습니다.' };
+      }),
+  }),
+});
+
+export type AppRouter = typeof appRouter;
