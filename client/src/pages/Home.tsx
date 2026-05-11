@@ -5,6 +5,7 @@ import NavBar from '@/components/NavBar';
 import HeroSection from '@/components/HeroSection';
 import GeopoliticsSection from '@/components/GeopoliticsSection';
 import PortfolioSection from '@/components/PortfolioSection';
+import PinLock from '@/components/PinLock';
 import MarketAnalysis from '@/components/MarketAnalysis';
 import RecommendSection from '@/components/RecommendSection';
 import ExitStrategySection from '@/components/ExitStrategySection';
@@ -38,7 +39,9 @@ export default function Home() {
       <NavBar />
       <HeroSection />
       <GeopoliticsSection />
-      <PortfolioSection />
+      <PinLock>
+        <PortfolioSection />
+      </PinLock>
       <MarketAnalysis />
       <RecommendSection />
       <ExitStrategySection />
