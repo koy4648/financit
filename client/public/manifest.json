@@ -11,19 +11,19 @@
   "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "src": "/manus-storage/pwa-icon-white-bg_a3a1c388.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "src": "/manus-storage/pwa-icon-white-bg_a3a1c388.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "src": "/manus-storage/pwa-icon-white-bg_a3a1c388.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
@@ -31,7 +31,7 @@
   ],
   "screenshots": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "src": "/manus-storage/pwa-icon-white-bg_a3a1c388.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
