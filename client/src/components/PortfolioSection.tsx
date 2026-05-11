@@ -7,8 +7,10 @@ import {
   PortfolioItem, loadPortfolio, savePortfolio,
   formatKRW, formatUSD, getBuyFrequencyLabel, BuyFrequency, AssetType
 } from '@/lib/portfolioData';
-import { Plus, Pencil, Trash2, X, Check, ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Zap, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import AutoAccumulateModal from './AutoAccumulateModal';
+import BuyRecordModal from './BuyRecordModal';
 
 const PIE_COLORS = ['#00d4ff', '#7c3aed', '#ff6b35', '#f59e0b', '#00ff88', '#ef4444', '#1e90ff', '#9370db', '#20b2aa'];
 
@@ -142,6 +144,8 @@ export default function PortfolioSection() {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [autoAccumulateItem, setAutoAccumulateItem] = useState<PortfolioItem | null>(null);
+  const [buyRecordItem, setBuyRecordItem] = useState<PortfolioItem | null>(null);
 
   useEffect(() => { savePortfolio(items); }, [items]);
 
@@ -161,6 +165,14 @@ export default function PortfolioSection() {
   const deleteItem = (id: string, name: string) => {
     setItems(prev => prev.filter(it => it.id !== id));
     toast.success(`${name} 삭제 완료`);
+  };
+
+  const handleRecalc = (itemId: string, avgCost: number, shares: number) => {
+    if (avgCost > 0 && shares > 0) {
+      setItems(prev => prev.map(it =>
+        it.id === itemId ? { ...it, avgCost, shares } : it
+      ));
+    }
   };
 
   // 월간 투자금 계산
@@ -292,6 +304,18 @@ export default function PortfolioSection() {
                             className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-white/5">
                             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
+                          <button
+                            onClick={() => setAutoAccumulateItem(item)}
+                            title="자동 적립 반영"
+                            className="p-1.5 text-muted-foreground hover:text-green-400 transition-colors rounded hover:bg-white/5">
+                            <Zap size={14} />
+                          </button>
+                          <button
+                            onClick={() => setBuyRecordItem(item)}
+                            title="매수 기록 보기"
+                            className="p-1.5 text-muted-foreground hover:text-cyan-400 transition-colors rounded hover:bg-white/5">
+                            <BookOpen size={14} />
+                          </button>
                           <button onClick={() => { setEditingId(item.id); setAdding(false); }}
                             className="p-1.5 text-muted-foreground hover:text-cyan transition-colors rounded hover:bg-white/5">
                             <Pencil size={14} />
@@ -372,6 +396,24 @@ export default function PortfolioSection() {
           </div>
         </div>
       </div>
+
+      {/* 자동 적립 모달 */}
+      {autoAccumulateItem && (
+        <AutoAccumulateModal
+          item={autoAccumulateItem}
+          onClose={() => setAutoAccumulateItem(null)}
+          onRecalc={handleRecalc}
+        />
+      )}
+
+      {/* 매수 기록 모달 */}
+      {buyRecordItem && (
+        <BuyRecordModal
+          item={buyRecordItem}
+          onClose={() => setBuyRecordItem(null)}
+          onRecalc={handleRecalc}
+        />
+      )}
     </section>
   );
 }

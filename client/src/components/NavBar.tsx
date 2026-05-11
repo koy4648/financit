@@ -2,11 +2,12 @@
 // Sticky top nav with neon accent, section links, live clock
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, BarChart2, PieChart, Star, Menu, X, LogOut } from 'lucide-react';
+import { TrendingUp, BarChart2, PieChart, Star, Menu, X, LogOut, Globe } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'market', label: '시장 분석', icon: BarChart2 },
+  { id: 'geopolitics', label: '국제 정세', icon: Globe },
   { id: 'portfolio', label: '내 포트폴리오', icon: PieChart },
+  { id: 'market', label: '시장 분석', icon: BarChart2 },
   { id: 'recommend', label: '국내주식 추천', icon: Star },
   { id: 'exit', label: '매도 전략', icon: LogOut },
 ];

@@ -3,8 +3,9 @@
 
 import NavBar from '@/components/NavBar';
 import HeroSection from '@/components/HeroSection';
-import MarketAnalysis from '@/components/MarketAnalysis';
+import GeopoliticsSection from '@/components/GeopoliticsSection';
 import PortfolioSection from '@/components/PortfolioSection';
+import MarketAnalysis from '@/components/MarketAnalysis';
 import RecommendSection from '@/components/RecommendSection';
 import ExitStrategySection from '@/components/ExitStrategySection';
 
@@ -36,8 +37,9 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <NavBar />
       <HeroSection />
-      <MarketAnalysis />
+      <GeopoliticsSection />
       <PortfolioSection />
+      <MarketAnalysis />
       <RecommendSection />
       <ExitStrategySection />
       <Footer />

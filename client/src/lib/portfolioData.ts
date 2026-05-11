@@ -21,6 +21,64 @@ export interface PortfolioItem {
   memo?: string;
 }
 
+// 개별 매수 기록
+export interface BuyRecord {
+  id: string;
+  portfolioItemId: string;  // 어느 종목인지
+  date: string;             // YYYY-MM-DD
+  price: number;            // 매수 당시 가격 (USD or KRW)
+  amount: number;           // 매수 금액 (원화)
+  shares: number;           // 매수 수량 (amount / price / exchangeRate)
+  exchangeRate?: number;    // USD 종목의 경우 환율 (기본 1380)
+  memo?: string;
+}
+
+// 매수 기록 저장소 키
+export const BUY_RECORDS_KEY = 'quant-dashboard-buy-records';
+
+export function loadBuyRecords(): BuyRecord[] {
+  try {
+    const saved = localStorage.getItem(BUY_RECORDS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [];
+}
+
+export function saveBuyRecords(records: BuyRecord[]): void {
+  try {
+    localStorage.setItem(BUY_RECORDS_KEY, JSON.stringify(records));
+  } catch {}
+}
+
+// 매수 기록으로 평단가·보유수량 재계산
+export function recalcFromRecords(
+  records: BuyRecord[],
+  itemId: string,
+  currency: 'KRW' | 'USD'
+): { avgCost: number; shares: number; totalInvestedKRW: number } {
+  const filtered = records.filter(r => r.portfolioItemId === itemId);
+  if (filtered.length === 0) return { avgCost: 0, shares: 0, totalInvestedKRW: 0 };
+
+  const totalShares = filtered.reduce((s, r) => s + r.shares, 0);
+  const totalInvestedKRW = filtered.reduce((s, r) => s + r.amount, 0);
+
+  // 평단가: 통화에 따라 계산
+  let avgCost = 0;
+  if (currency === 'KRW') {
+    avgCost = totalShares > 0 ? totalInvestedKRW / totalShares : 0;
+  } else {
+    // USD: 총 매수금액(원) / 총 수량 / 평균환율
+    const totalUSD = filtered.reduce((s, r) => s + r.shares * r.price, 0);
+    avgCost = totalShares > 0 ? totalUSD / totalShares : 0;
+  }
+
+  return {
+    avgCost: Math.round(avgCost * 10000) / 10000,
+    shares: Math.round(totalShares * 100000) / 100000,
+    totalInvestedKRW,
+  };
+}
+
 export interface MarketData {
   ticker: string;
   price: number;
