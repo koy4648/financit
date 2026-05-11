@@ -39,4 +39,12 @@
 - [x] TypeScript 빌드 오류 없음 확인
 - [x] vitest 테스트 통과
 - [x] 히어로 제목 "티끌모아 태산"으로 변경
-- [ ] 최종 체크포인트 저장
+- [x] 최종 체크포인트 저장
+
+## Phase 15: PWA 설정
+- [x] PWA 앱 아이콘 생성 (512x512, 192x192, 180x180)
+- [x] manifest.json 작성 (앱 이름, 아이콘, 테마 색상, 전체화면 모드)
+- [x] Service Worker 등록 (오프라인 캐싱)
+- [x] index.html에 PWA 메타태그 추가
+- [x] iOS Safari 홈 화면 추가 지원 (apple-touch-icon)
+- [x] 체크포인트 저장

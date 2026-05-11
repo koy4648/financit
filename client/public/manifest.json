@@ -1,0 +1,41 @@
+{
+  "name": "티끌모아 태산",
+  "short_name": "티끌태산",
+  "description": "개인 투자 포트폴리오 추적 · 국제 정세 분석 · 매도 전략",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#0a0f1e",
+  "theme_color": "#00d4ff",
+  "orientation": "portrait-primary",
+  "lang": "ko",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/pwa-icon-512-V7ZUwTBGmuRrSbGcgjtrw2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "티끌모아 태산 투자 대시보드"
+    }
+  ]
+}
