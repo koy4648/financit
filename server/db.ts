@@ -223,3 +223,89 @@ export async function getSnapshots(userId: number, days: number) {
     .where(and(eq(portfolioSnapshots.userId, userId), gte(portfolioSnapshots.date, sinceStr)))
     .orderBy(portfolioSnapshots.date);
 }
+
+// ── Principal Records (원금기록장) ────────────────────────────────────────────
+
+import {
+  principalRecords, InsertPrincipalRecord,
+  fxRecords, InsertFxRecord,
+  realizedGains, InsertRealizedGain,
+} from "../drizzle/schema";
+
+export async function getPrincipalRecords(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(principalRecords)
+    .where(eq(principalRecords.userId, userId))
+    .orderBy(principalRecords.date);
+}
+
+export async function createPrincipalRecord(data: InsertPrincipalRecord) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const [result] = await db.insert(principalRecords).values(data);
+  return result.insertId as number;
+}
+
+export async function deletePrincipalRecord(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(principalRecords).where(
+    and(eq(principalRecords.id, id), eq(principalRecords.userId, userId))
+  );
+}
+
+// ── FX Records (외화내역) ─────────────────────────────────────────────────────
+
+export async function getFxRecords(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(fxRecords)
+    .where(eq(fxRecords.userId, userId))
+    .orderBy(fxRecords.date);
+}
+
+export async function createFxRecord(data: InsertFxRecord) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const [result] = await db.insert(fxRecords).values(data);
+  return result.insertId as number;
+}
+
+export async function deleteFxRecord(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(fxRecords).where(
+    and(eq(fxRecords.id, id), eq(fxRecords.userId, userId))
+  );
+}
+
+// ── Realized Gains (실현손익) ─────────────────────────────────────────────────
+
+export async function getRealizedGains(userId: number, market?: "kr" | "us") {
+  const db = await getDb();
+  if (!db) return [];
+  if (market) {
+    return db.select().from(realizedGains)
+      .where(and(eq(realizedGains.userId, userId), eq(realizedGains.market, market)))
+      .orderBy(realizedGains.sellDate);
+  }
+  return db.select().from(realizedGains)
+    .where(eq(realizedGains.userId, userId))
+    .orderBy(realizedGains.sellDate);
+}
+
+export async function createRealizedGain(data: InsertRealizedGain) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const [result] = await db.insert(realizedGains).values(data);
+  return result.insertId as number;
+}
+
+export async function deleteRealizedGain(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(realizedGains).where(
+    and(eq(realizedGains.id, id), eq(realizedGains.userId, userId))
+  );
+}

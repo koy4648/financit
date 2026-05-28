@@ -48,3 +48,51 @@
 - [x] index.html에 PWA 메타태그 추가
 - [x] iOS Safari 홈 화면 추가 지원 (apple-touch-icon)
 - [x] 체크포인트 저장
+
+## Phase 16~18: 재무관리.xlsx 기반 종합 재무 관리 기능
+
+### DB 스키마 확장
+- [x] portfolio_items에 accountType 컬럼 추가 (isa/pension/irp/general)
+- [x] principal_records 테이블 (원금기록장 — 날짜별 계좌별 입금액)
+- [x] fx_records 테이블 (외화내역 — 매수/매도, 날짜, 환율, 달러, 원화)
+- [x] realized_gains 테이블 (실현손익 — 한국/미국 구분, 매수/매도 정보)
+- [x] DB 마이그레이션 완료
+
+### 계좌별 포트폴리오 UI
+- [x] 계좌 탭 (중개형ISA / 연금저축펀드 / IRP / 일반계좌) 구성
+- [x] 각 계좌별 종목 목록 + 평단가 + 수량 + 투자금액 표시
+- [x] 계좌별 총 투자금액 요약 + 전체 합계 표시
+- [x] AccountPortfolioSection 컴포넌트 완성 및 Home.tsx 조립
+- [x] NavBar에 계좌별 포트폴리오(#accounts) 링크 추가
+
+### 원금기록장
+- [x] 날짜별 계좌별 입금액 입력 UI
+- [x] 월별 적립액 집계 차트 (스택 바차트)
+- [x] 계좌별/전체 누계 원금 표시
+
+### 외화내역
+- [x] 외화 매수/매도 기록 입력 (날짜, 환율, 달러, 원화)
+- [x] 평균 환전 환율 자동 계산
+- [x] 총 환전 원화/달러 집계
+
+### 실현손익
+- [x] 한국/미국 실현손익 기록 입력 (매수일/매도일/종목/단가/수량)
+- [x] 절대 수익률 / 보유기간 자동 계산
+- [x] 한국/미국 필터 탭
+
+### 재무기록 통합 섹션
+- [x] FinanceRecordsSection 컴포넌트 완성 (원금기록장/외화내역/실현손익 탭)
+- [x] Home.tsx에 조립
+- [x] NavBar에 재무기록(#finance-records) 링크 추가
+
+### 종합 대시보드 업그레이드
+- [x] SummaryDashboard 컴포넌트 — 전체 자산 현황 요약 카드
+- [x] 총 납입 원금 / 총 투자금액 / 총 실현손익 / 원금 대비 수익률 표시
+- [x] 계좌별 비중 파이차트
+- [x] Home.tsx 히어로 섹션 바로 아래 배치
+
+### 최종
+- [x] TypeScript 오류 없음 (npx tsc --noEmit)
+- [x] vitest 테스트 통과 (1 test passed)
+- [x] DB 마이그레이션 완료
+- [x] 최종 체크포인트 저장

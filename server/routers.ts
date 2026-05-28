@@ -7,6 +7,9 @@ import {
   getPortfolioItems, createPortfolioItem, updatePortfolioItem, deletePortfolioItem,
   getBuyRecords, createBuyRecords, deleteBuyRecord, getLastBuyRecordDate,
   saveSnapshot, getSnapshots,
+  getPrincipalRecords, createPrincipalRecord, deletePrincipalRecord,
+  getFxRecords, createFxRecord, deleteFxRecord,
+  getRealizedGains, createRealizedGain, deleteRealizedGain,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import axios from "axios";
@@ -23,6 +26,7 @@ const portfolioItemInput = z.object({
   buyFrequency: z.enum(["daily", "weekly", "monthly"]),
   sector: z.string().max(100).optional(),
   memo: z.string().optional(),
+  accountType: z.enum(["isa", "pension", "irp", "general"]).default("general"),
 });
 
 const buyRecordInput = z.object({
@@ -35,7 +39,7 @@ const buyRecordInput = z.object({
   memo: z.string().max(200).optional(),
 });
 
-// 야후파이낸스 현재가 조회 (서버사이드 - CORS 없음)
+// 야후파이낸스 현재가 조회
 async function fetchCurrentPrice(ticker: string, currency: 'KRW' | 'USD'): Promise<{
   price: number; change: number; changePercent: number; currency: string;
 } | null> {
@@ -59,7 +63,7 @@ async function fetchCurrentPrice(ticker: string, currency: 'KRW' | 'USD'): Promi
   }
 }
 
-// 환율 조회 (USD/KRW)
+// 환율 조회
 async function fetchExchangeRate(): Promise<number> {
   try {
     const res = await axios.get(
@@ -131,9 +135,7 @@ export const appRouter = router({
       ),
   }),
 
-  // 실시간 시세 조회
   market: router({
-    // 여러 종목 현재가 일괄 조회
     prices: protectedProcedure
       .input(z.array(z.object({
         ticker: z.string(),
@@ -152,15 +154,12 @@ export const appRouter = router({
         });
         return priceMap;
       }),
-
-    // USD/KRW 환율
     exchangeRate: protectedProcedure.query(async () => {
       const rate = await fetchExchangeRate();
       return { rate };
     }),
   }),
 
-  // 포트폴리오 스냅샷 (자산 성장 기록)
   snapshot: router({
     save: protectedProcedure
       .input(z.object({
@@ -182,7 +181,6 @@ export const appRouter = router({
       ),
   }),
 
-  // AI 포트폴리오 진단
   ai: router({
     diagnose: protectedProcedure
       .input(z.object({
@@ -226,6 +224,86 @@ export const appRouter = router({
         });
         return { analysis: response.choices[0]?.message?.content ?? '분석 결과를 가져올 수 없습니다.' };
       }),
+  }),
+
+  // ── 원금기록장 ─────────────────────────────────────────────────────────────
+  principal: router({
+    list: protectedProcedure.query(({ ctx }) =>
+      getPrincipalRecords(ctx.user.id)
+    ),
+    create: protectedProcedure
+      .input(z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        accountType: z.enum(["isa", "pension", "irp", "general"]),
+        amount: z.number().int().min(1),
+        memo: z.string().max(200).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createPrincipalRecord({ ...input, userId: ctx.user.id });
+        return { id };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(({ ctx, input }) =>
+        deletePrincipalRecord(input.id, ctx.user.id)
+      ),
+  }),
+
+  // ── 외화내역 ──────────────────────────────────────────────────────────────
+  fx: router({
+    list: protectedProcedure.query(({ ctx }) =>
+      getFxRecords(ctx.user.id)
+    ),
+    create: protectedProcedure
+      .input(z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        type: z.enum(["buy", "sell"]),
+        exchangeRate: z.number().min(0),
+        usdAmount: z.number().min(0),
+        krwAmount: z.number().int().min(0),
+        memo: z.string().max(200).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createFxRecord({ ...input, userId: ctx.user.id });
+        return { id };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(({ ctx, input }) =>
+        deleteFxRecord(input.id, ctx.user.id)
+      ),
+  }),
+
+  // ── 실현손익 ──────────────────────────────────────────────────────────────
+  realizedGain: router({
+    list: protectedProcedure
+      .input(z.object({ market: z.enum(["kr", "us"]).optional() }))
+      .query(({ ctx, input }) =>
+        getRealizedGains(ctx.user.id, input.market)
+      ),
+    create: protectedProcedure
+      .input(z.object({
+        market: z.enum(["kr", "us"]),
+        buyDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        sellDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        ticker: z.string().max(20).optional(),
+        name: z.string().min(1).max(100),
+        buyPrice: z.number().min(0),
+        sellPrice: z.number().min(0),
+        shares: z.number().min(0),
+        dividendTotal: z.number().min(0).default(0),
+        currency: z.enum(["KRW", "USD"]).default("KRW"),
+        memo: z.string().max(200).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createRealizedGain({ ...input, userId: ctx.user.id });
+        return { id };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(({ ctx, input }) =>
+        deleteRealizedGain(input.id, ctx.user.id)
+      ),
   }),
 });
 

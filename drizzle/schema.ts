@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, double, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, double, json, date as mysqlDate } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -15,7 +15,7 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// 포트폴리오 종목 테이블
+// 포트폴리오 종목 테이블 (계좌 유형 추가)
 export const portfolioItems = mysqlTable("portfolio_items", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -30,6 +30,8 @@ export const portfolioItems = mysqlTable("portfolio_items", {
   buyFrequency: mysqlEnum("buyFrequency", ["daily", "weekly", "monthly"]).notNull().default("daily"),
   sector: varchar("sector", { length: 100 }),
   memo: text("memo"),
+  // 계좌 유형 (엑셀 시트 구조 반영)
+  accountType: mysqlEnum("accountType", ["isa", "pension", "irp", "general"]).notNull().default("general"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -44,7 +46,7 @@ export const buyRecords = mysqlTable("buy_records", {
   portfolioItemId: int("portfolioItemId").notNull(),
   date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
   price: double("price").notNull(),
-  amount: int("amount").notNull(), // 매수금액(원)
+  amount: int("amount").notNull(),
   shares: double("shares").notNull(),
   exchangeRate: double("exchangeRate"),
   memo: varchar("memo", { length: 200 }),
@@ -54,16 +56,67 @@ export const buyRecords = mysqlTable("buy_records", {
 export type BuyRecord = typeof buyRecords.$inferSelect;
 export type InsertBuyRecord = typeof buyRecords.$inferInsert;
 
-// 포트폴리오 스냅샷 테이블 (자산 성장 추적용)
+// 포트폴리오 스냅샷 테이블
 export const portfolioSnapshots = mysqlTable("portfolio_snapshots", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD (하루 1건)
-  totalKRW: double("totalKRW").notNull(),           // 총 평가금액 (원화)
-  totalInvestedKRW: double("totalInvestedKRW").notNull(), // 총 투자금액 (원화)
-  items: json("items").notNull(),                   // 종목별 상세 스냅샷
+  date: varchar("date", { length: 10 }).notNull(),
+  totalKRW: double("totalKRW").notNull(),
+  totalInvestedKRW: double("totalInvestedKRW").notNull(),
+  items: json("items").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export type PortfolioSnapshot = typeof portfolioSnapshots.$inferSelect;
 export type InsertPortfolioSnapshot = typeof portfolioSnapshots.$inferInsert;
+
+// 원금기록장 테이블 (날짜별 계좌별 입금액)
+export const principalRecords = mysqlTable("principal_records", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
+  accountType: mysqlEnum("accountType", ["isa", "pension", "irp", "general"]).notNull(),
+  amount: int("amount").notNull(), // 입금액 (원)
+  memo: varchar("memo", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PrincipalRecord = typeof principalRecords.$inferSelect;
+export type InsertPrincipalRecord = typeof principalRecords.$inferInsert;
+
+// 외화내역 테이블 (달러 매수/매도 기록)
+export const fxRecords = mysqlTable("fx_records", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
+  type: mysqlEnum("type", ["buy", "sell"]).notNull().default("buy"), // 매수/매도
+  exchangeRate: double("exchangeRate").notNull(), // 환율
+  usdAmount: double("usdAmount").notNull(),       // 달러 금액
+  krwAmount: int("krwAmount").notNull(),           // 원화 금액
+  memo: varchar("memo", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FxRecord = typeof fxRecords.$inferSelect;
+export type InsertFxRecord = typeof fxRecords.$inferInsert;
+
+// 실현손익 테이블 (한국/미국 주식 매도 기록)
+export const realizedGains = mysqlTable("realized_gains", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  market: mysqlEnum("market", ["kr", "us"]).notNull().default("kr"), // 한국/미국
+  buyDate: varchar("buyDate", { length: 10 }).notNull(),   // 매수일 YYYY-MM-DD
+  sellDate: varchar("sellDate", { length: 10 }).notNull(), // 매도일 YYYY-MM-DD
+  ticker: varchar("ticker", { length: 20 }),               // 종목코드 (미국)
+  name: varchar("name", { length: 100 }).notNull(),        // 종목명
+  buyPrice: double("buyPrice").notNull(),                  // 매수단가
+  sellPrice: double("sellPrice").notNull(),                // 매도단가
+  shares: double("shares").notNull(),                      // 수량
+  dividendTotal: double("dividendTotal").notNull().default(0), // 누적 배당금
+  currency: mysqlEnum("currency", ["KRW", "USD"]).notNull().default("KRW"),
+  memo: varchar("memo", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RealizedGain = typeof realizedGains.$inferSelect;
+export type InsertRealizedGain = typeof realizedGains.$inferInsert;

@@ -2,7 +2,7 @@
 // Sticky top nav with neon accent, section links, live clock, login/logout
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, BarChart2, PieChart, Star, Menu, X, LogOut, Globe, User, LogIn, CalendarDays, Bell } from 'lucide-react';
+import { TrendingUp, BarChart2, PieChart, Star, Menu, X, LogOut, Globe, User, LogIn, CalendarDays, Bell, Wallet, BookOpen } from 'lucide-react';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getLoginUrl } from '@/const';
 import { trpc } from '@/lib/trpc';
@@ -16,7 +16,9 @@ const PUBLIC_NAV = [
 
 const AUTH_NAV = [
   { id: 'geopolitics', label: '국제 정세', icon: Globe },
+  { id: 'accounts', label: '계좌별 포트폴리오', icon: Wallet },
   { id: 'portfolio', label: '내 포트폴리오', icon: PieChart },
+  { id: 'finance-records', label: '재무기록', icon: BookOpen },
   { id: 'calendar', label: '매수 캘린더', icon: CalendarDays },
   { id: 'alerts', label: '목표가 알림', icon: Bell },
   { id: 'market', label: '시장 분석', icon: BarChart2 },
@@ -61,12 +63,12 @@ export default function NavBar() {
           </span>
         </div>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-1">
+        {/* Desktop Nav — 스크롤 가능한 가로 메뉴 */}
+        <div className="hidden md:flex items-center gap-0.5 overflow-x-auto max-w-[600px] scrollbar-none">
           {(isAuthenticated ? AUTH_NAV : PUBLIC_NAV).map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => scrollTo(id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors font-mono">
-              <Icon size={12} />
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors font-mono whitespace-nowrap shrink-0">
+              <Icon size={11} />
               {label}
             </button>
           ))}
@@ -74,7 +76,7 @@ export default function NavBar() {
 
         {/* Right: clock + auth */}
         <div className="flex items-center gap-3 shrink-0">
-          <span className="hidden sm:block text-xs font-mono text-muted-foreground">
+          <span className="hidden lg:block text-xs font-mono text-muted-foreground">
             <span className="w-1.5 h-1.5 rounded-full inline-block mr-1.5 animate-pulse" style={{ background: '#00ff88' }} />
             {timeStr}
           </span>

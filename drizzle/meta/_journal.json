@@ -22,6 +22,13 @@
       "when": 1778478407836,
       "tag": "0002_greedy_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1779760077398,
+      "tag": "0003_lethal_venom",
+      "breakpoints": true
     }
   ]
 }
