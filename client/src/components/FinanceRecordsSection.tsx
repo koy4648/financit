@@ -20,7 +20,10 @@ function formatKRW(n: number) {
 
 const ACCOUNT_LABELS: Record<string, string> = {
   isa: "중개형ISA", pension: "연금저축", irp: "IRP", general: "일반계좌",
+  shinhan: "신한투자", koreainvest: "한국투자", mirae: "미래에셋",
 };
+
+const ACCOUNT_TYPES = Object.keys(ACCOUNT_LABELS);
 
 // ── 원금기록장 ─────────────────────────────────────────────────────────────────
 function PrincipalSection() {
@@ -44,11 +47,12 @@ function PrincipalSection() {
     if (!monthlyMap[ym]) monthlyMap[ym] = {};
     monthlyMap[ym][r.accountType] = (monthlyMap[ym][r.accountType] ?? 0) + r.amount;
   });
-  const monthlyData = Object.entries(monthlyMap).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([ym, acc]) => ({
-    month: ym.slice(5) + "월",
-    isa: acc.isa ?? 0, pension: acc.pension ?? 0, irp: acc.irp ?? 0, general: acc.general ?? 0,
-    total: Object.values(acc).reduce((s, v) => s + v, 0),
-  }));
+  const monthlyData = Object.entries(monthlyMap).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([ym, acc]) => {
+    const data: any = { month: ym.slice(5) + "월" };
+    ACCOUNT_TYPES.forEach(type => { data[type] = acc[type] ?? 0; });
+    data.total = Object.values(acc).reduce((s, v) => s + v, 0);
+    return data;
+  });
 
   const totalByAccount: Record<string, number> = {};
   records.forEach(r => { totalByAccount[r.accountType] = (totalByAccount[r.accountType] ?? 0) + r.amount; });
@@ -58,7 +62,7 @@ function PrincipalSection() {
     <div className="space-y-4">
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {(["isa", "pension", "irp", "general"] as const).map(type => (
+        {ACCOUNT_TYPES.map(type => (
           <div key={type} className="bg-[#161b22] border border-[#30363d] rounded-lg p-3">
             <div className="text-xs text-gray-500 mb-1">{ACCOUNT_LABELS[type]}</div>
             <div className="text-cyan-400 font-bold text-sm">{formatKRW(totalByAccount[type] ?? 0)}</div>
@@ -86,7 +90,10 @@ function PrincipalSection() {
               <Bar dataKey="isa" stackId="a" fill="#22d3ee" name="ISA" />
               <Bar dataKey="pension" stackId="a" fill="#34d399" name="연금저축" />
               <Bar dataKey="irp" stackId="a" fill="#a78bfa" name="IRP" />
-              <Bar dataKey="general" stackId="a" fill="#fbbf24" name="일반" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="general" stackId="a" fill="#fbbf24" name="일반" />
+              <Bar dataKey="shinhan" stackId="a" fill="#60a5fa" name="신한" />
+              <Bar dataKey="koreainvest" stackId="a" fill="#fb923c" name="한투" />
+              <Bar dataKey="mirae" stackId="a" fill="#facc15" name="미래" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -113,10 +120,9 @@ function PrincipalSection() {
                 <Select value={form.accountType} onValueChange={v => setForm(p => ({ ...p, accountType: v }))}>
                   <SelectTrigger className="bg-[#161b22] border-[#30363d] text-white mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-[#161b22] border-[#30363d] text-white">
-                    <SelectItem value="isa">중개형ISA</SelectItem>
-                    <SelectItem value="pension">연금저축펀드</SelectItem>
-                    <SelectItem value="irp">개인형IRP</SelectItem>
-                    <SelectItem value="general">일반계좌</SelectItem>
+                    {ACCOUNT_TYPES.map(type => (
+                      <SelectItem key={type} value={type}>{ACCOUNT_LABELS[type]}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

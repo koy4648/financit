@@ -22,7 +22,7 @@ export const portfolioItems = mysqlTable("portfolio_items", {
   ticker: varchar("ticker", { length: 20 }).notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   nameKr: varchar("nameKr", { length: 100 }),
-  type: mysqlEnum("type", ["us-stock", "kr-stock", "etf", "commodity"]).notNull().default("us-stock"),
+  type: mysqlEnum("type", ["us-stock", "kr-stock", "etf", "commodity", "savings", "note"]).notNull().default("us-stock"),
   currency: mysqlEnum("currency", ["KRW", "USD"]).notNull().default("USD"),
   avgCost: double("avgCost").notNull().default(0),
   shares: double("shares").notNull().default(0),
@@ -30,8 +30,11 @@ export const portfolioItems = mysqlTable("portfolio_items", {
   buyFrequency: mysqlEnum("buyFrequency", ["daily", "weekly", "monthly"]).notNull().default("daily"),
   sector: varchar("sector", { length: 100 }),
   memo: text("memo"),
-  // 계좌 유형 (엑셀 시트 구조 반영)
-  accountType: mysqlEnum("accountType", ["isa", "pension", "irp", "general"]).notNull().default("general"),
+  // 적금/발행어음 관련 필드
+  maturityDate: varchar("maturityDate", { length: 10 }), // 만기일 YYYY-MM-DD
+  interestRate: double("interestRate"),                // 이율 (%)
+  // 계좌 유형 (자유 입력 가능하도록 varchar로 변경)
+  accountType: varchar("accountType", { length: 50 }).notNull().default("general"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -75,7 +78,7 @@ export const principalRecords = mysqlTable("principal_records", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
-  accountType: mysqlEnum("accountType", ["isa", "pension", "irp", "general"]).notNull(),
+  accountType: varchar("accountType", { length: 50 }).notNull(),
   amount: int("amount").notNull(), // 입금액 (원)
   memo: varchar("memo", { length: 200 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

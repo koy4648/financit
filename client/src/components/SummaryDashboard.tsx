@@ -15,9 +15,13 @@ const ACCOUNT_COLORS: Record<string, string> = {
   pension: "#34d399",
   irp: "#a78bfa",
   general: "#fbbf24",
+  shinhan: "#60a5fa",
+  koreainvest: "#fb923c",
+  mirae: "#facc15",
 };
 const ACCOUNT_LABELS: Record<string, string> = {
   isa: "중개형ISA", pension: "연금저축", irp: "IRP", general: "일반계좌",
+  shinhan: "신한투자", koreainvest: "한국투자", mirae: "미래에셋",
 };
 
 export default function SummaryDashboard() {
@@ -44,9 +48,11 @@ export default function SummaryDashboard() {
   );
 
   // 계좌별 투자금액(평단가×수량) 및 현재 평가금액
-  const { accountInvestedTotals, accountCurrentTotals } = useMemo(() => {
-    const invested: Record<string, number> = { isa: 0, pension: 0, irp: 0, general: 0 };
-    const current: Record<string, number> = { isa: 0, pension: 0, irp: 0, general: 0 };
+  const { accountInvestedTotals, accountCurrentTotals, liquidAssets, lockedAssets } = useMemo(() => {
+    const invested: Record<string, number> = {};
+    const current: Record<string, number> = {};
+    let liquid = 0;
+    let locked = 0;
 
     portfolioItems.forEach(item => {
       const type = (item.accountType ?? "general") as string;
@@ -63,13 +69,25 @@ export default function SummaryDashboard() {
 
       invested[type] = (invested[type] ?? 0) + investedKRW;
       current[type] = (current[type] ?? 0) + currentKRW;
+
+      // 가용/묶인 자금 구분 (주식/ETF/원자재/발행어음은 묶인 돈, 적금은 묶인 돈, 현금성? 일단 적금/어음/주식 모두 묶인 돈으로 취급하되 principal에서 남은 돈을 가용으로?)
+      // 여기서는 종목 타입에 따라 구분
+      if (item.type === "savings" || item.type === "note" || item.type === "us-stock" || item.type === "kr-stock" || item.type === "etf" || item.type === "commodity") {
+        locked += currentKRW;
+      } else {
+        liquid += currentKRW;
+      }
     });
 
-    return { accountInvestedTotals: invested, accountCurrentTotals: current };
-  }, [portfolioItems, priceMap, exchangeRate]);
+    // 총 원금에서 총 투자금액을 뺀 나머지를 가용 자금(현금)으로 간주
+    const cash = Math.max(0, totalPrincipal - totalInvested);
+    liquid += cash;
 
-  const totalInvested = Object.values(accountInvestedTotals).reduce((s, v) => s + v, 0);
-  const totalCurrent = Object.values(accountCurrentTotals).reduce((s, v) => s + v, 0);
+    return { accountInvestedTotals: invested, accountCurrentTotals: current, liquidAssets: liquid, lockedAssets: locked };
+  }, [portfolioItems, priceMap, exchangeRate, totalPrincipal, totalInvested]);
+
+  const totalInvested = useMemo(() => Object.values(accountInvestedTotals).reduce((s, v) => s + v, 0), [accountInvestedTotals]);
+  const totalCurrent = useMemo(() => Object.values(accountCurrentTotals).reduce((s, v) => s + v, 0), [accountCurrentTotals]);
 
   // 미실현 손익
   const unrealizedGain = totalCurrent - totalInvested;
@@ -120,9 +138,10 @@ export default function SummaryDashboard() {
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
             총 평가금액
           </div>
-          <div className="text-white font-bold text-lg">{formatKRW(totalCurrent)}</div>
-          <div className={`text-xs font-medium ${isUnrealizedPositive ? "text-emerald-400" : "text-red-400"}`}>
-            미실현 {isUnrealizedPositive ? "+" : ""}{formatKRW(unrealizedGain)} ({isUnrealizedPositive ? "+" : ""}{unrealizedRate.toFixed(2)}%)
+          <div className="text-white font-bold text-lg">{formatKRW(totalCurrent + (totalPrincipal - totalInvested))}</div>
+          <div className="flex justify-between items-center mt-1">
+            <div className="text-[10px] text-gray-500">가용: {formatKRW(liquidAssets)}</div>
+            <div className="text-[10px] text-gray-500">묶인: {formatKRW(lockedAssets)}</div>
           </div>
         </div>
 

@@ -11,14 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, TrendingUp, TrendingDown, Wallet, Building2, Shield, Briefcase } from "lucide-react";
 
-type AccountType = "isa" | "pension" | "irp" | "general";
-
-const ACCOUNT_LABELS: Record<AccountType, { label: string; desc: string; icon: React.ReactNode; color: string }> = {
+const ACCOUNT_LABELS: Record<string, { label: string; desc: string; icon: React.ReactNode; color: string }> = {
   isa: { label: "중개형 ISA", desc: "비과세 혜택, 연 2000만원 한도", icon: <Shield className="w-4 h-4" />, color: "text-cyan-400" },
   pension: { label: "연금저축펀드", desc: "세액공제 400만원, 55세 이후 수령", icon: <Building2 className="w-4 h-4" />, color: "text-emerald-400" },
   irp: { label: "개인형 IRP", desc: "세액공제 300만원 추가, 퇴직금 통합", icon: <Wallet className="w-4 h-4" />, color: "text-violet-400" },
   general: { label: "일반 주식계좌", desc: "자유로운 매매, 양도세 적용", icon: <Briefcase className="w-4 h-4" />, color: "text-amber-400" },
+  "shinhan": { label: "신한투자증권", desc: "주식/발행어음 계좌", icon: <Briefcase className="w-4 h-4" />, color: "text-blue-400" },
+  "koreainvest": { label: "한국투자증권", desc: "주식/발행어음 계좌", icon: <Briefcase className="w-4 h-4" />, color: "text-orange-400" },
+  "mirae": { label: "미래에셋증권", desc: "주식/발행어음 계좌", icon: <Briefcase className="w-4 h-4" />, color: "text-yellow-400" },
 };
+
+const ACCOUNT_TYPES = Object.keys(ACCOUNT_LABELS);
 
 function formatKRW(n: number) {
   if (n >= 100000000) return `${(n / 100000000).toFixed(1)}억`;
@@ -26,16 +29,18 @@ function formatKRW(n: number) {
   return `${n.toLocaleString()}원`;
 }
 
-function AddItemModal({ accountType, onSuccess }: { accountType: AccountType; onSuccess: () => void }) {
+function AddItemModal({ accountType, onSuccess }: { accountType: string; onSuccess: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     ticker: "", name: "", nameKr: "",
-    type: "etf" as "us-stock" | "kr-stock" | "etf" | "commodity",
+    type: "etf" as "us-stock" | "kr-stock" | "etf" | "commodity" | "savings" | "note",
     currency: "KRW" as "KRW" | "USD",
     avgCost: "", shares: "",
     buyAmount: "1000",
     buyFrequency: "monthly" as "daily" | "weekly" | "monthly",
     sector: "", memo: "",
+    maturityDate: "",
+    interestRate: "",
   });
 
   const utils = trpc.useUtils();
@@ -66,6 +71,8 @@ function AddItemModal({ accountType, onSuccess }: { accountType: AccountType; on
       buyFrequency: form.buyFrequency,
       sector: form.sector || undefined,
       memo: form.memo || undefined,
+      maturityDate: form.maturityDate || undefined,
+      interestRate: form.interestRate ? parseFloat(form.interestRate) : undefined,
       accountType,
     });
   };
@@ -101,12 +108,14 @@ function AddItemModal({ accountType, onSuccess }: { accountType: AccountType; on
                 <SelectTrigger className="bg-[#161b22] border-[#30363d] text-white mt-1">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#161b22] border-[#30363d] text-white">
-                  <SelectItem value="us-stock">미국주식</SelectItem>
-                  <SelectItem value="kr-stock">한국주식</SelectItem>
-                  <SelectItem value="etf">ETF</SelectItem>
-                  <SelectItem value="commodity">원자재</SelectItem>
-                </SelectContent>
+                  <SelectContent className="bg-[#161b22] border-[#30363d] text-white">
+                    <SelectItem value="us-stock">미국주식</SelectItem>
+                    <SelectItem value="kr-stock">한국주식</SelectItem>
+                    <SelectItem value="etf">ETF</SelectItem>
+                    <SelectItem value="commodity">원자재</SelectItem>
+                    <SelectItem value="savings">적금</SelectItem>
+                    <SelectItem value="note">발행어음</SelectItem>
+                  </SelectContent>
               </Select>
             </div>
             <div>
@@ -154,6 +163,20 @@ function AddItemModal({ accountType, onSuccess }: { accountType: AccountType; on
               </Select>
             </div>
           </div>
+          {(form.type === "savings" || form.type === "note") && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-gray-400">만기일</Label>
+                <Input type="date" value={form.maturityDate} onChange={e => setForm(p => ({ ...p, maturityDate: e.target.value }))}
+                  className="bg-[#161b22] border-[#30363d] text-white mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-400">이율 (%)</Label>
+                <Input type="number" value={form.interestRate} onChange={e => setForm(p => ({ ...p, interestRate: e.target.value }))}
+                  placeholder="0.0" className="bg-[#161b22] border-[#30363d] text-white mt-1" />
+              </div>
+            </div>
+          )}
           <div>
             <Label className="text-xs text-gray-400">섹터</Label>
             <Input value={form.sector} onChange={e => setForm(p => ({ ...p, sector: e.target.value }))}
@@ -180,10 +203,10 @@ export default function AccountPortfolioSection() {
   });
 
   // 계좌별 종목 분류
-  const byAccount = (type: AccountType) => items.filter(i => (i.accountType ?? "general") === type);
+  const byAccount = (type: string) => items.filter(i => (i.accountType ?? "general") === type);
 
   // 계좌별 총 투자금액 (평단가 × 수량)
-  const accountTotal = (type: AccountType) => {
+  const accountTotal = (type: string) => {
     return byAccount(type).reduce((sum, item) => {
       const valueKRW = item.currency === "USD"
         ? item.avgCost * item.shares * exchangeRate
@@ -192,7 +215,7 @@ export default function AccountPortfolioSection() {
     }, 0);
   };
 
-  const totalAll = (["isa", "pension", "irp", "general"] as AccountType[]).reduce(
+  const totalAll = ACCOUNT_TYPES.reduce(
     (sum, t) => sum + accountTotal(t), 0
   );
 
@@ -218,7 +241,7 @@ export default function AccountPortfolioSection() {
 
       <Tabs defaultValue="isa" className="w-full">
         <TabsList className="bg-[#161b22] border border-[#30363d] p-1 mb-6 flex flex-wrap gap-1 h-auto">
-          {(["isa", "pension", "irp", "general"] as AccountType[]).map(type => {
+          {ACCOUNT_TYPES.map(type => {
             const info = ACCOUNT_LABELS[type];
             const count = byAccount(type).length;
             const total = accountTotal(type);
@@ -240,7 +263,7 @@ export default function AccountPortfolioSection() {
           })}
         </TabsList>
 
-        {(["isa", "pension", "irp", "general"] as AccountType[]).map(type => {
+        {ACCOUNT_TYPES.map(type => {
           const info = ACCOUNT_LABELS[type];
           const accountItems = byAccount(type);
           return (
@@ -283,6 +306,7 @@ export default function AccountPortfolioSection() {
                               ? item.avgCost * item.shares * exchangeRate
                               : item.avgCost * item.shares;
                             const freqLabel = { daily: "매일", weekly: "매주", monthly: "매월" }[item.buyFrequency];
+                            const isSavings = item.type === "savings" || item.type === "note";
                             return (
                               <tr key={item.id} className="border-b border-[#30363d]/50 hover:bg-[#161b22]/50 transition-colors">
                                 <td className="py-3 pr-4">
@@ -290,6 +314,12 @@ export default function AccountPortfolioSection() {
                                     <div>
                                       <div className="font-mono text-cyan-400 text-xs">{item.ticker}</div>
                                       <div className="text-white text-sm">{item.nameKr || item.name}</div>
+                                      {isSavings && (
+                                        <div className="text-[10px] text-gray-500">
+                                          {item.maturityDate && `만기: ${item.maturityDate}`}
+                                          {item.interestRate && ` · 이율: ${item.interestRate}%`}
+                                        </div>
+                                      )}
                                     </div>
                                     <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400 hidden sm:flex">
                                       {item.currency}

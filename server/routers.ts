@@ -18,7 +18,7 @@ const portfolioItemInput = z.object({
   ticker: z.string().min(1).max(20),
   name: z.string().min(1).max(100),
   nameKr: z.string().max(100).optional(),
-  type: z.enum(["us-stock", "kr-stock", "etf", "commodity"]),
+  type: z.enum(["us-stock", "kr-stock", "etf", "commodity", "savings", "note"]),
   currency: z.enum(["KRW", "USD"]),
   avgCost: z.number().min(0),
   shares: z.number().min(0),
@@ -26,7 +26,9 @@ const portfolioItemInput = z.object({
   buyFrequency: z.enum(["daily", "weekly", "monthly"]),
   sector: z.string().max(100).optional(),
   memo: z.string().optional(),
-  accountType: z.enum(["isa", "pension", "irp", "general"]).default("general"),
+  maturityDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  interestRate: z.number().min(0).optional().nullable(),
+  accountType: z.string().min(1).max(50).default("general"),
 });
 
 const buyRecordInput = z.object({
@@ -234,7 +236,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        accountType: z.enum(["isa", "pension", "irp", "general"]),
+        accountType: z.string().min(1).max(50),
         amount: z.number().int().min(1),
         memo: z.string().max(200).optional(),
       }))
