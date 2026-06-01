@@ -1,8 +1,8 @@
-import type { Express } from "express";
 import { ENV } from "./env";
+import type { AppLike } from "./httpTypes";
 
-export function registerStorageProxy(app: Express) {
-  (app as any).get("/manus-storage/*", async (req: any, res: any) => {
+export function registerStorageProxy(app: AppLike) {
+  app.get("/manus-storage/*", async (req: any, res: any) => {
     const key = (req.params as Record<string, string>)[0];
     if (!key) {
       res.status(400).send("Missing storage key");

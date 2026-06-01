@@ -1,21 +1,21 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
+import type { AppLike, RequestLike, ResponseLike } from "./httpTypes";
 import { sdk } from "./sdk";
 
-function getQueryParam(req: Request, key: string): string | undefined {
-  const value = req.query[key];
+function getQueryParam(req: RequestLike, key: string): string | undefined {
+  const value = req.query?.[key];
   return typeof value === "string" ? value : undefined;
 }
 
-export function registerOAuthRoutes(app: Express) {
-  (app as any).get("/api/oauth/callback", async (req: Request, res: Response) => {
+export function registerOAuthRoutes(app: AppLike) {
+  app.get("/api/oauth/callback", async (req: RequestLike, res: ResponseLike) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
 
     if (!code || !state) {
-      (res as any).status(400).json({ error: "code and state are required" });
+      res.status(400).json({ error: "code and state are required" });
       return;
     }
 
