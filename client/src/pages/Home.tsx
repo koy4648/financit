@@ -3,6 +3,7 @@
 // 공개: 급등 종목 + 시장 정세 + 시장 분석 + 추천 + 매도 전략
 // 로그인: 국제 정세 → 계좌별 포트폴리오 → 포트폴리오 → 재무기록 → 매수 캘린더 → 목표가 알림 → 시장 분석 → 추천 → 매도 전략
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/_core/hooks/useAuth';
 import NavBar from '@/components/NavBar';
 import HeroSection from '@/components/HeroSection';
@@ -44,6 +45,21 @@ function Footer() {
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setShowAuthModal(window.location.hash === '#login');
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const closeAuthModal = () => {
+    window.location.hash = '';
+    setShowAuthModal(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,12 +77,7 @@ export default function Home() {
 
         {/* 비로그인 공개 대시보드 */}
         {!loading && !isAuthenticated && (
-          <>
-            <PublicDashboard />
-            <PinLock>
-              <></>
-            </PinLock>
-          </>
+          <PublicDashboard />
         )}
       </div>
 
@@ -103,6 +114,13 @@ export default function Home() {
           <RecommendSection />
           <ExitStrategySection />
         </>
+      )}
+
+      {/* 로그인 모달 팝업 */}
+      {showAuthModal && !isAuthenticated && (
+        <PinLock onClose={closeAuthModal}>
+          <></>
+        </PinLock>
       )}
 
       <Footer />

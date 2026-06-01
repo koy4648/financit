@@ -3,16 +3,17 @@
 // 미로그인 시 로그인 유도 화면 표시
 
 import { useAuth } from '@/_core/hooks/useAuth';
-import { Lock, LogIn, Shield, Loader2 } from 'lucide-react';
+import { Lock, LogIn, Shield, Loader2, X } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 
 interface PinLockProps {
+  onClose?: () => void;
   children: React.ReactNode;
 }
 
-export default function PinLock({ children }: PinLockProps) {
+export default function PinLock({ children, onClose }: PinLockProps) {
   const { isAuthenticated, loading } = useAuth();
   const utils = trpc.useUtils();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -64,18 +65,21 @@ export default function PinLock({ children }: PinLockProps) {
     );
   }
 
-  // 미로그인 → 로그인 유도
+  // 미로그인 → 로그인 유도 (모달 형태로 렌더링)
   if (!isAuthenticated) {
     return (
-      <section id="portfolio" className="py-12 border-t border-border/40">
-        <div className="container">
-          <div className="max-w-sm mx-auto">
-            <div className="quant-card p-8 text-center"
-              style={{ border: '1px solid rgba(0,212,255,0.2)' }}>
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
-                style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }}>
-                <Lock size={28} style={{ color: '#00d4ff' }} />
-              </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="quant-card w-full max-w-sm p-8 text-center relative"
+          style={{ border: '1px solid rgba(0,212,255,0.2)' }}>
+          {onClose && (
+            <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
+              <X size={18} />
+            </button>
+          )}
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+            style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }}>
+            <Lock size={28} style={{ color: '#00d4ff' }} />
+          </div>
 
               <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>
                 내 포트폴리오
@@ -169,8 +173,6 @@ export default function PinLock({ children }: PinLockProps) {
               </p>
             </div>
           </div>
-        </div>
-      </section>
     );
   }
 

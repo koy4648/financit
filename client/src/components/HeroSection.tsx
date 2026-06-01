@@ -3,6 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useAuth } from '@/_core/hooks/useAuth';
+import { trpc } from '@/lib/trpc';
 
 const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663037673521/TNgU9ndkzcn3xBu5JAHWWW/hero_bg-4gWVtSCwUGJWjoUYaUYTXS.webp';
 
@@ -32,8 +34,32 @@ function useCountUp(target: number, duration = 1200) {
 }
 
 export default function HeroSection() {
-  const totalAssets = useCountUp(460000);
+  const { isAuthenticated } = useAuth();
+  const [kstDate, setKstDate] = useState('');
+
+  const { data: rawItems = [] } = trpc.portfolio.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  const monthlyTotal = rawItems.reduce((sum, it) => {
+    const monthly = it.buyFrequency === 'daily' ? it.buyAmount * 22
+      : it.buyFrequency === 'weekly' ? it.buyAmount * 4
+      : it.buyAmount;
+    return sum + monthly;
+  }, 0);
+
+  const totalAssets = useCountUp(monthlyTotal);
   const [tickerIdx, setTickerIdx] = useState(0);
+
+  useEffect(() => {
+    const formatted = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    setKstDate(formatted.replace(/\s+/g, '').replace(/\.$/, ''));
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setTickerIdx(i => (i + 1) % MARKET_TICKERS.length), 2500);
@@ -56,7 +82,7 @@ export default function HeroSection() {
         <div className="max-w-3xl">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2 h-2 rounded-full pulse-dot" style={{ background: '#00ff88' }} />
-            <span className="font-mono text-xs" style={{ color: '#00ff88' }}>LIVE DASHBOARD · 2026.05.11</span>
+            <span className="font-mono text-xs" style={{ color: '#00ff88' }}>LIVE DASHBOARD · {kstDate || '2026.06.01'}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-3 leading-tight"
             style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
@@ -70,16 +96,20 @@ export default function HeroSection() {
 
           {/* Stats Row */}
           <div className="flex flex-wrap gap-4">
-            <div className="quant-card px-4 py-3 glow-cyan">
-              <div className="text-xs text-muted-foreground mb-1 font-mono">월 총 투자금</div>
-              <div className="text-2xl font-bold font-mono" style={{ color: '#00d4ff' }}>
-                ₩{totalAssets.toLocaleString()}
-              </div>
-            </div>
-            <div className="quant-card px-4 py-3">
-              <div className="text-xs text-muted-foreground mb-1 font-mono">보유 종목 수</div>
-              <div className="text-2xl font-bold font-mono text-foreground">9</div>
-            </div>
+            {isAuthenticated && (
+              <>
+                <div className="quant-card px-4 py-3 glow-cyan">
+                  <div className="text-xs text-muted-foreground mb-1 font-mono">월 총 투자금</div>
+                  <div className="text-2xl font-bold font-mono" style={{ color: '#00d4ff' }}>
+                    ₩{totalAssets.toLocaleString()}
+                  </div>
+                </div>
+                <div className="quant-card px-4 py-3">
+                  <div className="text-xs text-muted-foreground mb-1 font-mono">보유 종목 수</div>
+                  <div className="text-2xl font-bold font-mono text-foreground">{rawItems.length}</div>
+                </div>
+              </>
+            )}
             <div className="quant-card px-4 py-3 glow-mint">
               <div className="text-xs text-muted-foreground mb-1 font-mono">2025 KOSPI</div>
               <div className="text-2xl font-bold font-mono text-gain">+75.6%</div>
