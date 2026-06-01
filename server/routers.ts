@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -204,7 +204,7 @@ export const appRouter = router({
   }),
 
   market: router({
-    prices: protectedProcedure
+    prices: publicProcedure
       .input(z.array(z.object({
         ticker: z.string(),
         currency: z.enum(["KRW", "USD"]),
@@ -222,7 +222,7 @@ export const appRouter = router({
         });
         return priceMap;
       }),
-    exchangeRate: protectedProcedure.query(async () => {
+    exchangeRate: publicProcedure.query(async () => {
       const rate = await fetchExchangeRate();
       return { rate };
     }),

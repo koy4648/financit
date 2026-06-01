@@ -1,7 +1,8 @@
 // 비로그인 공개 대시보드 — 급등 종목 + 국내외 시장 정세
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Globe, Newspaper, RefreshCw, LogIn } from 'lucide-react';
 import { getLoginUrl } from '@/const';
+import { trpc } from '@/lib/trpc';
 
 // 급등 종목 데이터 (야후 파이낸스 공개 API 기반 정적 + 동적 혼합)
 const HOT_US_STOCKS = [
@@ -112,62 +113,36 @@ function StockCard({ stock, market }: { stock: StockWithPrice; market: 'US' | 'K
 }
 
 export default function PublicDashboard() {
-  const [usStocks, setUsStocks] = useState<StockWithPrice[]>(
-    HOT_US_STOCKS.map(s => ({ ...s, loading: true }))
-  );
-  const [krStocks, setKrStocks] = useState<StockWithPrice[]>(
-    HOT_KR_STOCKS.map(s => ({ ...s, loading: true }))
-  );
   const [lastUpdated, setLastUpdated] = useState('');
+  const tickers = useMemo(
+    () => [
+      ...HOT_US_STOCKS.map(stock => ({ ticker: stock.ticker, currency: 'USD' as const })),
+      ...HOT_KR_STOCKS.map(stock => ({ ticker: stock.ticker, currency: 'KRW' as const })),
+    ],
+    []
+  );
+  const { data: prices = {}, isLoading } = trpc.market.prices.useQuery(tickers, {
+    staleTime: 1000 * 60 * 5,
+  });
 
-  // 클라이언트에서 야후 파이낸스 직접 호출 (공개 API)
   useEffect(() => {
-    const fetchPrices = async () => {
-      const fetchOne = async (ticker: string, isKR: boolean) => {
-        try {
-          if (!ticker || typeof ticker !== 'string') return null;
-          const yahooTicker = isKR ? `${ticker}.KS` : ticker;
-          const baseUrl = "https://query1.finance.yahoo.com/v8/finance/chart/";
-          const url = new URL(yahooTicker, baseUrl);
-          url.searchParams.set("interval", "1d");
-          url.searchParams.set("range", "2d");
-          
-          const res = await fetch(url.toString());
-          if (!res.ok) return null;
-          const data = await res.json();
-          const meta = data?.chart?.result?.[0]?.meta;
-          if (!meta) return null;
-          const price = meta.regularMarketPrice ?? 0;
-          const prev = meta.previousClose ?? meta.chartPreviousClose ?? price;
-          const changePercent = prev > 0 ? ((price - prev) / prev) * 100 : 0;
-          return { price, changePercent };
-        } catch {
-          return null;
-        }
-      };
-
-      const [usResults, krResults] = await Promise.all([
-        Promise.all(HOT_US_STOCKS.map(s => fetchOne(s.ticker, false))),
-        Promise.all(HOT_KR_STOCKS.map(s => fetchOne(s.ticker, true))),
-      ]);
-
-      setUsStocks(HOT_US_STOCKS.map((s, i) => ({
-        ...s,
-        price: usResults[i]?.price,
-        changePercent: usResults[i]?.changePercent,
-        loading: false,
-      })));
-      setKrStocks(HOT_KR_STOCKS.map((s, i) => ({
-        ...s,
-        price: krResults[i]?.price,
-        changePercent: krResults[i]?.changePercent,
-        loading: false,
-      })));
+    if (!isLoading) {
       setLastUpdated(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
-    };
+    }
+  }, [isLoading, prices]);
 
-    fetchPrices();
-  }, []);
+  const usStocks = HOT_US_STOCKS.map(stock => ({
+    ...stock,
+    price: prices[stock.ticker]?.price,
+    changePercent: prices[stock.ticker]?.changePercent,
+    loading: isLoading,
+  }));
+  const krStocks = HOT_KR_STOCKS.map(stock => ({
+    ...stock,
+    price: prices[stock.ticker]?.price,
+    changePercent: prices[stock.ticker]?.changePercent,
+    loading: isLoading,
+  }));
 
   return (
     <div className="space-y-16">
