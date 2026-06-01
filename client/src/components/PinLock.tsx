@@ -3,8 +3,10 @@
 // 미로그인 시 로그인 유도 화면 표시
 
 import { useAuth } from '@/_core/hooks/useAuth';
-import { getLoginUrl } from '@/const';
 import { Lock, LogIn, Shield, Loader2 } from 'lucide-react';
+import { type FormEvent, useState } from 'react';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 
 interface PinLockProps {
   children: React.ReactNode;
@@ -12,6 +14,39 @@ interface PinLockProps {
 
 export default function PinLock({ children }: PinLockProps) {
   const { isAuthenticated, loading } = useAuth();
+  const utils = trpc.useUtils();
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const onAuthSuccess = async (message: string) => {
+    toast.success(message);
+    await utils.auth.me.invalidate();
+  };
+
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: () => onAuthSuccess('로그인되었습니다'),
+    onError: (error) => toast.error(error.message),
+  });
+
+  const signupMutation = trpc.auth.signup.useMutation({
+    onSuccess: () => onAuthSuccess('회원가입이 완료되었습니다'),
+    onError: (error) => toast.error(error.message),
+  });
+
+  const pending = loginMutation.isPending || signupMutation.isPending;
+
+  const submitAuth = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (mode === 'signup') {
+      signupMutation.mutate({ name, email, password });
+      return;
+    }
+
+    loginMutation.mutate({ email, password });
+  };
 
   // 로딩 중
   if (loading) {
@@ -69,14 +104,68 @@ export default function PinLock({ children }: PinLockProps) {
                 ))}
               </div>
 
-              <a href={getLoginUrl()}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded text-sm font-semibold text-background transition-all hover:opacity-90"
-                style={{ background: '#00d4ff' }}>
-                <LogIn size={14} /> Manus 계정으로 로그인
-              </a>
+              <div className="flex rounded border border-border/60 p-1 mb-4 bg-background/40">
+                <button
+                  type="button"
+                  onClick={() => setMode('login')}
+                  className="flex-1 rounded py-1.5 text-xs font-mono transition-colors"
+                  style={mode === 'login' ? { background: '#00d4ff', color: '#071018' } : undefined}
+                >
+                  로그인
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('signup')}
+                  className="flex-1 rounded py-1.5 text-xs font-mono transition-colors"
+                  style={mode === 'signup' ? { background: '#00d4ff', color: '#071018' } : undefined}
+                >
+                  회원가입
+                </button>
+              </div>
+
+              <form onSubmit={submitAuth} className="space-y-3">
+                {mode === 'signup' && (
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    required
+                    maxLength={80}
+                    placeholder="이름"
+                    className="w-full rounded border border-border bg-background px-3 py-2 text-sm outline-none focus:border-cyan-400"
+                  />
+                )}
+                <input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                  type="email"
+                  maxLength={320}
+                  placeholder="이메일"
+                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm outline-none focus:border-cyan-400"
+                />
+                <input
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  type="password"
+                  minLength={8}
+                  maxLength={128}
+                  placeholder="비밀번호 (8자 이상)"
+                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm outline-none focus:border-cyan-400"
+                />
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded text-sm font-semibold text-background transition-all hover:opacity-90 disabled:opacity-60"
+                  style={{ background: '#00d4ff' }}
+                >
+                  {pending ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
+                  {mode === 'signup' ? '회원가입' : '로그인'}
+                </button>
+              </form>
 
               <p className="text-[10px] text-muted-foreground font-mono mt-3">
-                Manus 계정이 없으면 무료로 가입할 수 있습니다.
+                회원 정보는 이 서비스의 데이터 저장용으로만 사용됩니다.
               </p>
             </div>
           </div>

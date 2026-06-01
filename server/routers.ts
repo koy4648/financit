@@ -1,8 +1,9 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import {
   getPortfolioItems, createPortfolioItem, updatePortfolioItem, deletePortfolioItem,
   getBuyRecords, createBuyRecords, deleteBuyRecord, getLastBuyRecordDate,
@@ -10,9 +11,21 @@ import {
   getPrincipalRecords, createPrincipalRecord, deletePrincipalRecord,
   getFxRecords, createFxRecord, deleteFxRecord,
   getRealizedGains, createRealizedGain, deleteRealizedGain,
+  getUserByEmail, upsertUser,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { hashPassword, verifyPassword } from "./_core/password";
+import { sdk } from "./_core/sdk";
 import axios from "axios";
+
+const authInput = z.object({
+  email: z.string().email().max(320).transform(email => email.trim().toLowerCase()),
+  password: z.string().min(8).max(128),
+});
+
+const signupInput = authInput.extend({
+  name: z.string().trim().min(1).max(80),
+});
 
 const portfolioItemInput = z.object({
   ticker: z.string().min(1).max(20),
@@ -83,6 +96,59 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    signup: publicProcedure
+      .input(signupInput)
+      .mutation(async ({ ctx, input }) => {
+        const existingUser = await getUserByEmail(input.email);
+        if (existingUser) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "이미 가입된 이메일입니다." });
+        }
+
+        const passwordHash = await hashPassword(input.password);
+        const openId = `email:${input.email}`;
+
+        await upsertUser({
+          openId,
+          name: input.name,
+          email: input.email,
+          passwordHash,
+          loginMethod: "email",
+          lastSignedIn: new Date(),
+        });
+
+        const sessionToken = await sdk.createSessionToken(openId, {
+          name: input.name,
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        (ctx.res as any).cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        return { success: true } as const;
+      }),
+    login: publicProcedure
+      .input(authInput)
+      .mutation(async ({ ctx, input }) => {
+        const user = await getUserByEmail(input.email);
+        const valid = await verifyPassword(input.password, user?.passwordHash ?? null);
+
+        if (!user || !valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "이메일 또는 비밀번호가 올바르지 않습니다." });
+        }
+
+        await upsertUser({
+          openId: user.openId,
+          lastSignedIn: new Date(),
+        });
+
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        (ctx.res as any).cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        return { success: true } as const;
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       (ctx.res as any).clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

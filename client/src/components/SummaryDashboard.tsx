@@ -50,7 +50,7 @@ export default function SummaryDashboard() {
   );
 
   // 계좌별 투자금액(평단가×수량) 및 현재 평가금액
-  const { accountInvestedTotals, accountCurrentTotals, liquidAssets, lockedAssets } = useMemo(() => {
+  const { accountInvestedTotals, accountCurrentTotals, totalInvested, liquidAssets, lockedAssets } = useMemo(() => {
     const invested: Record<string, number> = {};
     const current: Record<string, number> = {};
     let liquid = 0;
@@ -81,14 +81,21 @@ export default function SummaryDashboard() {
       }
     });
 
+    const investedTotal = Object.values(invested).reduce((sum, value) => sum + value, 0);
+
     // 총 원금에서 총 투자금액을 뺀 나머지를 가용 자금(현금)으로 간주
-    const cash = Math.max(0, totalPrincipal - totalInvested);
+    const cash = Math.max(0, totalPrincipal - investedTotal);
     liquid += cash;
 
-    return { accountInvestedTotals: invested, accountCurrentTotals: current, liquidAssets: liquid, lockedAssets: locked };
-  }, [portfolioItems, priceMap, exchangeRate, totalPrincipal, totalInvested]);
+    return {
+      accountInvestedTotals: invested,
+      accountCurrentTotals: current,
+      totalInvested: investedTotal,
+      liquidAssets: liquid,
+      lockedAssets: locked,
+    };
+  }, [portfolioItems, priceMap, exchangeRate, totalPrincipal]);
 
-  const totalInvested = useMemo(() => Object.values(accountInvestedTotals).reduce((s, v) => s + v, 0), [accountInvestedTotals]);
   const totalCurrent = useMemo(() => Object.values(accountCurrentTotals).reduce((s, v) => s + v, 0), [accountCurrentTotals]);
 
   // 미실현 손익

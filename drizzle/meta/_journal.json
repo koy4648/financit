@@ -29,6 +29,13 @@
       "when": 1779760077398,
       "tag": "0003_lethal_venom",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1780294500000,
+      "tag": "0004_password_auth",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@ import PublicDashboard from '@/components/PublicDashboard';
 import BuyCalendar from '@/components/BuyCalendar';
 import PriceAlertSection from '@/components/PriceAlertSection';
 import SummaryDashboard from '@/components/SummaryDashboard';
+import PinLock from '@/components/PinLock';
 
 function Footer() {
   return (
@@ -60,7 +61,12 @@ export default function Home() {
 
         {/* 비로그인 공개 대시보드 */}
         {!loading && !isAuthenticated && (
-          <PublicDashboard />
+          <>
+            <PublicDashboard />
+            <PinLock>
+              <></>
+            </PinLock>
+          </>
         )}
       </div>
 
