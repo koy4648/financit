@@ -4,7 +4,7 @@ export type AppLike = {
 };
 
 export type RequestLike = {
-  headers: Record<string, string | string[] | undefined>;
+  headers?: Record<string, string | string[] | undefined>;
   hostname?: string;
   params?: unknown;
   protocol?: string;
