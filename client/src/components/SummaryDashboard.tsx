@@ -33,7 +33,9 @@ export default function SummaryDashboard() {
 
   // 현재가 조회를 위한 ticker 목록
   const tickerInputs = useMemo(
-    () => portfolioItems.map(item => ({ ticker: item.currency === "KRW" ? `${item.ticker}.KS` : item.ticker, currency: item.currency })),
+    () => portfolioItems
+      .filter(item => item.ticker && item.ticker.trim() !== "")
+      .map(item => ({ ticker: item.currency === "KRW" ? `${item.ticker}.KS` : item.ticker, currency: item.currency })),
     [portfolioItems]
   );
   const { data: priceMap = {} } = trpc.market.prices.useQuery(tickerInputs, {

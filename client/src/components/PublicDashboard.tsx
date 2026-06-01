@@ -125,9 +125,11 @@ export default function PublicDashboard() {
     const fetchPrices = async () => {
       const fetchOne = async (ticker: string, isKR: boolean) => {
         try {
+          if (!ticker) return null;
           const yahooTicker = isKR ? `${ticker}.KS` : ticker;
           const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooTicker}?interval=1d&range=2d`;
           const res = await fetch(url);
+          if (!res.ok) return null;
           const data = await res.json();
           const meta = data?.chart?.result?.[0]?.meta;
           if (!meta) return null;
