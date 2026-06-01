@@ -20,20 +20,34 @@ export default function PinLock({ children, onClose }: PinLockProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const onAuthSuccess = async (message: string) => {
     toast.success(message);
+    if (onClose) onClose();
     await utils.auth.me.invalidate();
   };
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => onAuthSuccess('로그인되었습니다'),
-    onError: (error) => toast.error(error.message),
+    onSuccess: () => {
+      setErrorMessage('');
+      onAuthSuccess('로그인되었습니다');
+    },
+    onError: (error) => {
+      setErrorMessage(error.message);
+      toast.error(error.message);
+    },
   });
 
   const signupMutation = trpc.auth.signup.useMutation({
-    onSuccess: () => onAuthSuccess('회원가입이 완료되었습니다'),
-    onError: (error) => toast.error(error.message),
+    onSuccess: () => {
+      setErrorMessage('');
+      onAuthSuccess('회원가입이 완료되었습니다');
+    },
+    onError: (error) => {
+      setErrorMessage(error.message);
+      toast.error(error.message);
+    },
   });
 
   const pending = loginMutation.isPending || signupMutation.isPending;
@@ -111,7 +125,7 @@ export default function PinLock({ children, onClose }: PinLockProps) {
               <div className="flex rounded border border-border/60 p-1 mb-4 bg-background/40">
                 <button
                   type="button"
-                  onClick={() => setMode('login')}
+                  onClick={() => { setMode('login'); setErrorMessage(''); }}
                   className="flex-1 rounded py-1.5 text-xs font-mono transition-colors"
                   style={mode === 'login' ? { background: '#00d4ff', color: '#071018' } : undefined}
                 >
@@ -119,13 +133,19 @@ export default function PinLock({ children, onClose }: PinLockProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMode('signup')}
+                  onClick={() => { setMode('signup'); setErrorMessage(''); }}
                   className="flex-1 rounded py-1.5 text-xs font-mono transition-colors"
                   style={mode === 'signup' ? { background: '#00d4ff', color: '#071018' } : undefined}
                 >
                   회원가입
                 </button>
               </div>
+
+              {errorMessage && (
+                <div className="text-xs text-red-400 font-mono text-center mb-3 bg-red-400/10 p-2.5 border border-red-400/20 rounded">
+                  {errorMessage}
+                </div>
+              )}
 
               <form onSubmit={submitAuth} className="space-y-3">
                 {mode === 'signup' && (
