@@ -1,5 +1,5 @@
-import { ENV } from "./env";
-import type { AppLike } from "./httpTypes";
+import { ENV } from "./env.js";
+import type { AppLike } from "./httpTypes.js";
 
 export function registerStorageProxy(app: AppLike) {
   app.get("/manus-storage/*", async (req: any, res: any) => {

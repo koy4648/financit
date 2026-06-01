@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { InsertUser, users } from "../drizzle/schema.js";
+import { ENV } from './_core/env.js';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -109,7 +109,7 @@ import { and } from "drizzle-orm";
 import {
   portfolioItems, InsertPortfolioItem,
   buyRecords, InsertBuyRecord,
-} from "../drizzle/schema";
+} from "../drizzle/schema.js";
 
 export async function getPortfolioItems(userId: number) {
   const db = await getDb();
@@ -190,7 +190,7 @@ export async function getLastBuyRecordDate(userId: number, portfolioItemId: numb
 // ── Portfolio Snapshots ───────────────────────────────────────────────────────
 
 import { gte, desc } from "drizzle-orm";
-import { portfolioSnapshots } from "../drizzle/schema";
+import { portfolioSnapshots } from "../drizzle/schema.js";
 
 export async function saveSnapshot(
   userId: number,
@@ -242,7 +242,7 @@ import {
   principalRecords, InsertPrincipalRecord,
   fxRecords, InsertFxRecord,
   realizedGains, InsertRealizedGain,
-} from "../drizzle/schema";
+} from "../drizzle/schema.js";
 
 export async function getPrincipalRecords(userId: number) {
   const db = await getDb();

@@ -1,7 +1,7 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const.js";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { systemRouter } from "./_core/systemRouter.js";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
@@ -12,10 +12,10 @@ import {
   getFxRecords, createFxRecord, deleteFxRecord,
   getRealizedGains, createRealizedGain, deleteRealizedGain,
   getUserByEmail, upsertUser,
-} from "./db";
-import { invokeLLM } from "./_core/llm";
-import { hashPassword, verifyPassword } from "./_core/password";
-import { sdk } from "./_core/sdk";
+} from "./db.js";
+import { invokeLLM } from "./_core/llm.js";
+import { hashPassword, verifyPassword } from "./_core/password.js";
+import { sdk } from "./_core/sdk.js";
 import axios from "axios";
 
 const authInput = z.object({
