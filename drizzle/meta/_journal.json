@@ -36,6 +36,13 @@
       "when": 1780294500000,
       "tag": "0004_password_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1780304670119,
+      "tag": "0005_perfect_sabra",
+      "breakpoints": true
     }
   ]
 }
