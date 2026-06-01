@@ -34,7 +34,7 @@ export default function SummaryDashboard() {
   // 현재가 조회를 위한 ticker 목록
   const tickerInputs = useMemo(
     () => portfolioItems
-      .filter(item => item.ticker && item.ticker.trim() !== "")
+      .filter(item => item.ticker && typeof item.ticker === 'string' && item.ticker.trim() !== "" && item.type !== 'savings' && item.type !== 'note')
       .map(item => ({ ticker: item.currency === "KRW" ? `${item.ticker}.KS` : item.ticker, currency: item.currency })),
     [portfolioItems]
   );
